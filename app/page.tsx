@@ -25,19 +25,6 @@ export default function Home() {
 
   const [selectedProblemId, setSelectedProblemId] = useState("")
 
-  // Load custom problems from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("customProblems")
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        setCustomProblems(parsed)
-      } catch (e) {
-        console.error("Error loading custom problems:", e)
-      }
-    }
-  }, [])
-
   // Combine default and custom problems
   const allProblems = [...defaultProblems, ...customProblems]
   
@@ -62,13 +49,7 @@ export default function Home() {
 
   const selectedProblem = allProblems.find((p) => p.id === selectedProblemId)
 
-  // Save custom problems to localStorage
-  const saveCustomProblems = (problems: any[]) => {
-    localStorage.setItem("customProblems", JSON.stringify(problems))
-    setCustomProblems(problems)
-  }
-
-  // Add new custom problem
+  // Add new custom problem (session-only, not saved to localStorage)
   const handleAddProblem = () => {
     if (!newProblem.title.trim() || !newProblem.description.trim()) {
       alert("Please fill in both title and description")
@@ -83,19 +64,18 @@ export default function Home() {
       difficulty: newProblem.difficulty || "Medium",
     }
 
-    const updated = [...customProblems, customProblem]
-    saveCustomProblems(updated)
+    setCustomProblems([...customProblems, customProblem])
     setSelectedProblemId(customProblem.id)
     setShowAddModal(false)
     setNewProblem({ title: "", description: "", topic: "Custom", difficulty: "Medium" })
   }
 
-  // Delete custom problem
+  // Delete custom problem (session-only)
   const handleDeleteProblem = (id: string) => {
     if (!id.startsWith("custom-")) return // Only allow deleting custom problems
     if (confirm("Are you sure you want to delete this custom problem?")) {
       const updated = customProblems.filter((p) => p.id !== id)
-      saveCustomProblems(updated)
+      setCustomProblems(updated)
       if (selectedProblemId === id && updated.length > 0) {
         setSelectedProblemId(updated[0].id)
       } else if (updated.length === 0) {
@@ -554,18 +534,18 @@ export default function Home() {
               marginBottom: 16,
               flexWrap: "wrap",
               gap: 12,
+          }}
+        >
+          <h3
+            style={{
+              fontSize: "1.25rem",
+              fontWeight: 600,
+              color: "#1e293b",
+                margin: 0,
             }}
           >
-            <h3
-              style={{
-                fontSize: "1.25rem",
-                fontWeight: 600,
-                color: "#1e293b",
-                margin: 0,
-              }}
-            >
-              Problem Statement
-            </h3>
+            Problem Statement
+          </h3>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {allProblems.find((p) => p.id === selectedProblemId)?.difficulty && (
                 <span
