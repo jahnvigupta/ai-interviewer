@@ -12,21 +12,13 @@ export default function Home() {
   const [error, setError] = useState("")
   const [loadingStage, setLoadingStage] = useState("")
   const [language, setLanguage] = useState("javascript")
-  const [customProblems, setCustomProblems] = useState<any[]>([])
-  const [showAddModal, setShowAddModal] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [dropdownSearch, setDropdownSearch] = useState("")
-  const [newProblem, setNewProblem] = useState({
-    title: "",
-    description: "",
-    topic: "Custom",
-    difficulty: "Medium",
-  })
 
   const [selectedProblemId, setSelectedProblemId] = useState("")
 
-  // Combine default and custom problems
-  const allProblems = [...defaultProblems, ...customProblems]
+  // Use only default problems
+  const allProblems = defaultProblems
   
   // Initialize selected problem
   useEffect(() => {
@@ -48,41 +40,6 @@ export default function Home() {
   })
 
   const selectedProblem = allProblems.find((p) => p.id === selectedProblemId)
-
-  // Add new custom problem (session-only, not saved to localStorage)
-  const handleAddProblem = () => {
-    if (!newProblem.title.trim() || !newProblem.description.trim()) {
-      alert("Please fill in both title and description")
-      return
-    }
-
-    const customProblem = {
-      id: `custom-${Date.now()}`,
-      title: newProblem.title.trim(),
-      description: newProblem.description.trim(),
-      topic: newProblem.topic || "Custom",
-      difficulty: newProblem.difficulty || "Medium",
-    }
-
-    setCustomProblems([...customProblems, customProblem])
-    setSelectedProblemId(customProblem.id)
-    setShowAddModal(false)
-    setNewProblem({ title: "", description: "", topic: "Custom", difficulty: "Medium" })
-  }
-
-  // Delete custom problem (session-only)
-  const handleDeleteProblem = (id: string) => {
-    if (!id.startsWith("custom-")) return // Only allow deleting custom problems
-    if (confirm("Are you sure you want to delete this custom problem?")) {
-      const updated = customProblems.filter((p) => p.id !== id)
-      setCustomProblems(updated)
-      if (selectedProblemId === id && updated.length > 0) {
-        setSelectedProblemId(updated[0].id)
-      } else if (updated.length === 0) {
-        setSelectedProblemId(defaultProblems[0]?.id || "")
-      }
-    }
-  }
 
   const languages = [
     { value: "javascript", label: "JavaScript" },
@@ -184,48 +141,17 @@ export default function Home() {
         </p>
 
         <section style={{ marginBottom: 24 }}>
-          <div
+          <label
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              display: "block",
+              fontSize: "1.1rem",
+              fontWeight: 600,
               marginBottom: 12,
+              color: "#1e293b",
             }}
           >
-            <label
-              style={{
-                fontSize: "1.1rem",
-                fontWeight: 600,
-                color: "#1e293b",
-              }}
-            >
-              Select Problem
-            </label>
-            <button
-              onClick={() => setShowAddModal(true)}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 6,
-                border: "2px solid #667eea",
-                background: "#ffffff",
-                color: "#667eea",
-                fontSize: "0.9rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#667eea"
-                e.currentTarget.style.color = "#ffffff"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#ffffff"
-                e.currentTarget.style.color = "#667eea"
-              }}
-            >
-              + Add Custom Problem
-            </button>
-          </div>
+            Select Problem
+          </label>
 
           <div style={{ position: "relative" }}>
             <button
@@ -352,61 +278,9 @@ export default function Home() {
                       </div>
                     ) : (
                       <>
-                        {customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id)).length > 0 && (
-                          <>
-                            <div
-                              style={{
-                                padding: "8px 16px",
-                                background: "#f1f5f9",
-                                fontSize: "0.85rem",
-                                fontWeight: 600,
-                                color: "#475569",
-                                borderBottom: "1px solid #e2e8f0",
-                              }}
-                            >
-                              Custom ({customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id)).length})
-                            </div>
-                            {customProblems
-                              .filter((p) => filteredProblems.some((fp) => fp.id === p.id))
-                              .map((problem) => (
-                                <div
-                                  key={problem.id}
-                                  onClick={() => {
-                                    setSelectedProblemId(problem.id)
-                                    setCode("")
-                                    setExplanation("")
-                                    setResult(null)
-                                    setDropdownOpen(false)
-                                    setDropdownSearch("")
-                                  }}
-                                  style={{
-                                    padding: "12px 16px",
-                                    cursor: "pointer",
-                                    borderBottom: "1px solid #f1f5f9",
-                                    background: selectedProblemId === problem.id ? "#f0f9ff" : "#ffffff",
-                                    color: "#1e293b",
-                                    fontSize: "0.95rem",
-                                    transition: "background 0.15s",
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (selectedProblemId !== problem.id) {
-                                      e.currentTarget.style.background = "#f8fafc"
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (selectedProblemId !== problem.id) {
-                                      e.currentTarget.style.background = "#ffffff"
-                                    }
-                                  }}
-                                >
-                                  {problem.title}
-                                </div>
-                              ))}
-                          </>
-                        )}
                         {["Easy", "Medium", "Hard"].map((difficulty) => {
                           const problemsByDifficulty = filteredProblems.filter(
-                            (p) => p.difficulty === difficulty && !p.id.startsWith("custom-")
+                            (p) => p.difficulty === difficulty
                           )
                           if (problemsByDifficulty.length === 0) return null
 
@@ -420,11 +294,7 @@ export default function Home() {
                                   fontWeight: 600,
                                   color: "#475569",
                                   borderBottom: "1px solid #e2e8f0",
-                                  borderTop:
-                                    customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id))
-                                      .length > 0
-                                      ? "1px solid #e2e8f0"
-                                      : "none",
+                                  borderTop: difficulty === "Easy" ? "none" : "1px solid #e2e8f0",
                                 }}
                               >
                                 {difficulty} ({problemsByDifficulty.length})
@@ -488,33 +358,6 @@ export default function Home() {
             )}
           </div>
 
-          {selectedProblemId.startsWith("custom-") && (
-            <button
-              onClick={() => handleDeleteProblem(selectedProblemId)}
-              style={{
-                marginTop: 8,
-                padding: "6px 12px",
-                borderRadius: 6,
-                border: "2px solid #ef4444",
-                background: "#ffffff",
-                color: "#ef4444",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#ef4444"
-                e.currentTarget.style.color = "#ffffff"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#ffffff"
-                e.currentTarget.style.color = "#ef4444"
-              }}
-            >
-              Delete Custom Problem
-            </button>
-          )}
         </section>
 
         <section
@@ -1041,256 +884,6 @@ export default function Home() {
           </div>
         )}
       </div>
-
-      {/* Add Custom Problem Modal */}
-      {showAddModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: 20,
-          }}
-          onClick={() => setShowAddModal(false)}
-        >
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 16,
-              padding: 32,
-              maxWidth: 600,
-              width: "100%",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: 700,
-                marginBottom: 24,
-                color: "#1e293b",
-              }}
-            >
-              Add Custom Problem
-            </h2>
-
-            <div style={{ marginBottom: 20 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.95rem",
-                  fontWeight: 600,
-                  marginBottom: 8,
-                  color: "#1e293b",
-                }}
-              >
-                Problem Title *
-              </label>
-              <input
-                type="text"
-                value={newProblem.title}
-                onChange={(e) => setNewProblem({ ...newProblem, title: e.target.value })}
-                placeholder="e.g., Two Sum"
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  borderRadius: 8,
-                  border: "2px solid #e2e8f0",
-                  fontSize: "0.95rem",
-                  outline: "none",
-                  transition: "all 0.2s",
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "#667eea"
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "#e2e8f0"
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.95rem",
-                  fontWeight: 600,
-                  marginBottom: 8,
-                  color: "#1e293b",
-                }}
-              >
-                Problem Description *
-              </label>
-              <textarea
-                value={newProblem.description}
-                onChange={(e) => setNewProblem({ ...newProblem, description: e.target.value })}
-                placeholder="Enter the problem statement, examples, constraints, etc."
-                rows={10}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  borderRadius: 8,
-                  border: "2px solid #e2e8f0",
-                  fontSize: "0.95rem",
-                  resize: "vertical",
-                  fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
-                  outline: "none",
-                  transition: "all 0.2s",
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "#667eea"
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "#e2e8f0"
-                }}
-              />
-            </div>
-
-            <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.95rem",
-                    fontWeight: 600,
-                    marginBottom: 8,
-                    color: "#1e293b",
-                  }}
-                >
-                  Topic
-                </label>
-                <input
-                  type="text"
-                  value={newProblem.topic}
-                  onChange={(e) => setNewProblem({ ...newProblem, topic: e.target.value })}
-                  placeholder="e.g., Arrays, Trees, etc."
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    borderRadius: 8,
-                    border: "2px solid #e2e8f0",
-                    fontSize: "0.95rem",
-                    outline: "none",
-                    transition: "all 0.2s",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "#667eea"
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "#e2e8f0"
-                  }}
-                />
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.95rem",
-                    fontWeight: 600,
-                    marginBottom: 8,
-                    color: "#1e293b",
-                  }}
-                >
-                  Difficulty
-                </label>
-                <select
-                  value={newProblem.difficulty}
-                  onChange={(e) => setNewProblem({ ...newProblem, difficulty: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    borderRadius: 8,
-                    border: "2px solid #e2e8f0",
-                    fontSize: "0.95rem",
-                    outline: "none",
-                    transition: "all 0.2s",
-                    cursor: "pointer",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "#667eea"
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "#e2e8f0"
-                  }}
-                >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <button
-                onClick={() => {
-                  setShowAddModal(false)
-                  setNewProblem({ title: "", description: "", topic: "Custom", difficulty: "Medium" })
-                }}
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: 8,
-                  border: "2px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: "#475569",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#94a3b8"
-                  e.currentTarget.style.color = "#1e293b"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#e2e8f0"
-                  e.currentTarget.style.color = "#475569"
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddProblem}
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  color: "#ffffff",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  boxShadow: "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)"
-                  e.currentTarget.style.boxShadow =
-                    "0 10px 15px -3px rgba(102, 126, 234, 0.3), 0 4px 6px -2px rgba(102, 126, 234, 0.2)"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)"
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)"
-                }}
-              >
-                Add Problem
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   )
 }
-
