@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Editor from "@monaco-editor/react"
-import { problems } from "@/lib/problems"
+import { problems as defaultProblems } from "@/lib/problems"
 
 export default function Home() {
   const [code, setCode] = useState("")
@@ -12,7 +12,94 @@ export default function Home() {
   const [error, setError] = useState("")
   const [loadingStage, setLoadingStage] = useState("")
   const [language, setLanguage] = useState("javascript")
-  const [selectedProblemId, setSelectedProblemId] = useState(problems[0].id)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [customProblems, setCustomProblems] = useState<any[]>([])
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [newProblem, setNewProblem] = useState({
+    title: "",
+    description: "",
+    topic: "Custom",
+    difficulty: "Medium",
+  })
+
+  const [selectedProblemId, setSelectedProblemId] = useState("")
+
+  // Load custom problems from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("customProblems")
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setCustomProblems(parsed)
+      } catch (e) {
+        console.error("Error loading custom problems:", e)
+      }
+    }
+  }, [])
+
+  // Combine default and custom problems
+  const allProblems = [...defaultProblems, ...customProblems]
+  
+  // Initialize selected problem
+  useEffect(() => {
+    if (allProblems.length > 0 && !selectedProblemId) {
+      setSelectedProblemId(allProblems[0].id)
+    }
+  }, [allProblems.length, selectedProblemId])
+
+  // Filter problems based on search query
+  const filteredProblems = allProblems.filter((problem) => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      problem.title.toLowerCase().includes(query) ||
+      problem.description.toLowerCase().includes(query) ||
+      problem.topic?.toLowerCase().includes(query) ||
+      problem.difficulty?.toLowerCase().includes(query)
+    )
+  })
+
+  // Save custom problems to localStorage
+  const saveCustomProblems = (problems: any[]) => {
+    localStorage.setItem("customProblems", JSON.stringify(problems))
+    setCustomProblems(problems)
+  }
+
+  // Add new custom problem
+  const handleAddProblem = () => {
+    if (!newProblem.title.trim() || !newProblem.description.trim()) {
+      alert("Please fill in both title and description")
+      return
+    }
+
+    const customProblem = {
+      id: `custom-${Date.now()}`,
+      title: newProblem.title.trim(),
+      description: newProblem.description.trim(),
+      topic: newProblem.topic || "Custom",
+      difficulty: newProblem.difficulty || "Medium",
+    }
+
+    const updated = [...customProblems, customProblem]
+    saveCustomProblems(updated)
+    setSelectedProblemId(customProblem.id)
+    setShowAddModal(false)
+    setNewProblem({ title: "", description: "", topic: "Custom", difficulty: "Medium" })
+  }
+
+  // Delete custom problem
+  const handleDeleteProblem = (id: string) => {
+    if (!id.startsWith("custom-")) return // Only allow deleting custom problems
+    if (confirm("Are you sure you want to delete this custom problem?")) {
+      const updated = customProblems.filter((p) => p.id !== id)
+      saveCustomProblems(updated)
+      if (selectedProblemId === id && updated.length > 0) {
+        setSelectedProblemId(updated[0].id)
+      } else if (updated.length === 0) {
+        setSelectedProblemId(defaultProblems[0]?.id || "")
+      }
+    }
+  }
 
   const languages = [
     { value: "javascript", label: "JavaScript" },
@@ -51,7 +138,7 @@ export default function Home() {
     }, 900)
 
     try {
-      const selectedProblem = problems.find((p) => p.id === selectedProblemId)
+      const selectedProblem = allProblems.find((p) => p.id === selectedProblemId)
       if (!selectedProblem) throw new Error("Problem not found")
 
       const res = await fetch("/api/evaluate", {
@@ -114,17 +201,75 @@ export default function Home() {
         </p>
 
         <section style={{ marginBottom: 24 }}>
-          <label
+          <div
             style={{
-              display: "block",
-              fontSize: "1.1rem",
-              fontWeight: 600,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               marginBottom: 12,
-              color: "#1e293b",
             }}
           >
-            Select Problem
-          </label>
+            <label
+              style={{
+                fontSize: "1.1rem",
+                fontWeight: 600,
+                color: "#1e293b",
+              }}
+            >
+              Select Problem
+            </label>
+            <button
+              onClick={() => setShowAddModal(true)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 6,
+                border: "2px solid #667eea",
+                background: "#ffffff",
+                color: "#667eea",
+                fontSize: "0.9rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#667eea"
+                e.currentTarget.style.color = "#ffffff"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#ffffff"
+                e.currentTarget.style.color = "#667eea"
+              }}
+            >
+              + Add Custom Problem
+            </button>
+          </div>
+
+          <input
+            type="text"
+            placeholder="Search problems by title, description, topic, or difficulty..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "12px 16px",
+              marginBottom: 12,
+              borderRadius: 8,
+              border: "2px solid #e2e8f0",
+              background: loading ? "#f8fafc" : "#ffffff",
+              color: "#1e293b",
+              fontSize: "0.95rem",
+              transition: "all 0.2s",
+              outline: "none",
+            }}
+            onFocus={(e) => {
+              if (!loading) e.target.style.borderColor = "#667eea"
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#e2e8f0"
+            }}
+          />
+
           <select
             value={selectedProblemId}
             onChange={(e) => {
@@ -154,21 +299,70 @@ export default function Home() {
               e.target.style.borderColor = "#e2e8f0"
             }}
           >
-            {["Easy", "Medium", "Hard"].map((difficulty) => {
-              const problemsByDifficulty = problems.filter((p) => p.difficulty === difficulty)
-              if (problemsByDifficulty.length === 0) return null
-              
-              return (
-                <optgroup key={difficulty} label={`${difficulty} (${problemsByDifficulty.length})`}>
-                  {problemsByDifficulty.map((problem) => (
-                    <option key={problem.id} value={problem.id}>
-                      {problem.title}
-                    </option>
-                  ))}
-                </optgroup>
-              )
-            })}
+            {filteredProblems.length === 0 ? (
+              <option value="">No problems found</option>
+            ) : (
+              <>
+                {customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id)).length > 0 && (
+                  <optgroup
+                    label={`Custom (${customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id)).length})`}
+                  >
+                    {customProblems
+                      .filter((p) => filteredProblems.some((fp) => fp.id === p.id))
+                      .map((problem) => (
+                        <option key={problem.id} value={problem.id}>
+                          {problem.title}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+                {["Easy", "Medium", "Hard"].map((difficulty) => {
+                  const problemsByDifficulty = filteredProblems.filter(
+                    (p) => p.difficulty === difficulty && !p.id.startsWith("custom-")
+                  )
+                  if (problemsByDifficulty.length === 0) return null
+
+                  return (
+                    <optgroup key={difficulty} label={`${difficulty} (${problemsByDifficulty.length})`}>
+                      {problemsByDifficulty.map((problem) => (
+                        <option key={problem.id} value={problem.id}>
+                          {problem.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )
+                })}
+              </>
+            )}
           </select>
+
+          {selectedProblemId.startsWith("custom-") && (
+            <button
+              onClick={() => handleDeleteProblem(selectedProblemId)}
+              style={{
+                marginTop: 8,
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "2px solid #ef4444",
+                background: "#ffffff",
+                color: "#ef4444",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#ef4444"
+                e.currentTarget.style.color = "#ffffff"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#ffffff"
+                e.currentTarget.style.color = "#ef4444"
+              }}
+            >
+              Delete Custom Problem
+            </button>
+          )}
         </section>
 
         <section
@@ -201,15 +395,15 @@ export default function Home() {
               Problem Statement
             </h3>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {problems.find((p) => p.id === selectedProblemId)?.difficulty && (
+              {allProblems.find((p) => p.id === selectedProblemId)?.difficulty && (
                 <span
                   style={{
                     padding: "6px 12px",
                     borderRadius: 6,
                     background:
-                      problems.find((p) => p.id === selectedProblemId)?.difficulty === "Easy"
+                      allProblems.find((p) => p.id === selectedProblemId)?.difficulty === "Easy"
                         ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-                        : problems.find((p) => p.id === selectedProblemId)?.difficulty === "Medium"
+                        : allProblems.find((p) => p.id === selectedProblemId)?.difficulty === "Medium"
                         ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
                         : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
                     color: "#ffffff",
@@ -217,10 +411,10 @@ export default function Home() {
                     fontWeight: 600,
                   }}
                 >
-                  {problems.find((p) => p.id === selectedProblemId)?.difficulty}
+                  {allProblems.find((p) => p.id === selectedProblemId)?.difficulty}
                 </span>
               )}
-              {problems.find((p) => p.id === selectedProblemId)?.topic && (
+              {allProblems.find((p) => p.id === selectedProblemId)?.topic && (
                 <span
                   style={{
                     padding: "6px 12px",
@@ -231,7 +425,7 @@ export default function Home() {
                     fontWeight: 600,
                   }}
                 >
-                  {problems.find((p) => p.id === selectedProblemId)?.topic}
+                  {allProblems.find((p) => p.id === selectedProblemId)?.topic}
                 </span>
               )}
             </div>
@@ -250,7 +444,7 @@ export default function Home() {
               fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
             }}
           >
-            {problems.find((p) => p.id === selectedProblemId)?.description}
+            {allProblems.find((p) => p.id === selectedProblemId)?.description}
           </pre>
         </section>
 
@@ -695,6 +889,255 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Add Custom Problem Modal */}
+      {showAddModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: 20,
+          }}
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: 16,
+              padding: 32,
+              maxWidth: 600,
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                marginBottom: 24,
+                color: "#1e293b",
+              }}
+            >
+              Add Custom Problem
+            </h2>
+
+            <div style={{ marginBottom: 20 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  marginBottom: 8,
+                  color: "#1e293b",
+                }}
+              >
+                Problem Title *
+              </label>
+              <input
+                type="text"
+                value={newProblem.title}
+                onChange={(e) => setNewProblem({ ...newProblem, title: e.target.value })}
+                placeholder="e.g., Two Sum"
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  border: "2px solid #e2e8f0",
+                  fontSize: "0.95rem",
+                  outline: "none",
+                  transition: "all 0.2s",
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "#667eea"
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "#e2e8f0"
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  marginBottom: 8,
+                  color: "#1e293b",
+                }}
+              >
+                Problem Description *
+              </label>
+              <textarea
+                value={newProblem.description}
+                onChange={(e) => setNewProblem({ ...newProblem, description: e.target.value })}
+                placeholder="Enter the problem statement, examples, constraints, etc."
+                rows={10}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  border: "2px solid #e2e8f0",
+                  fontSize: "0.95rem",
+                  resize: "vertical",
+                  fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
+                  outline: "none",
+                  transition: "all 0.2s",
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "#667eea"
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "#e2e8f0"
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+              <div style={{ flex: 1 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    marginBottom: 8,
+                    color: "#1e293b",
+                  }}
+                >
+                  Topic
+                </label>
+                <input
+                  type="text"
+                  value={newProblem.topic}
+                  onChange={(e) => setNewProblem({ ...newProblem, topic: e.target.value })}
+                  placeholder="e.g., Arrays, Trees, etc."
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    borderRadius: 8,
+                    border: "2px solid #e2e8f0",
+                    fontSize: "0.95rem",
+                    outline: "none",
+                    transition: "all 0.2s",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#667eea"
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#e2e8f0"
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    marginBottom: 8,
+                    color: "#1e293b",
+                  }}
+                >
+                  Difficulty
+                </label>
+                <select
+                  value={newProblem.difficulty}
+                  onChange={(e) => setNewProblem({ ...newProblem, difficulty: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    borderRadius: 8,
+                    border: "2px solid #e2e8f0",
+                    fontSize: "0.95rem",
+                    outline: "none",
+                    transition: "all 0.2s",
+                    cursor: "pointer",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#667eea"
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#e2e8f0"
+                  }}
+                >
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => {
+                  setShowAddModal(false)
+                  setNewProblem({ title: "", description: "", topic: "Custom", difficulty: "Medium" })
+                }}
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 8,
+                  border: "2px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: "#475569",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#94a3b8"
+                  e.currentTarget.style.color = "#1e293b"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e2e8f0"
+                  e.currentTarget.style.color = "#475569"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddProblem}
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  boxShadow: "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)"
+                  e.currentTarget.style.boxShadow =
+                    "0 10px 15px -3px rgba(102, 126, 234, 0.3), 0 4px 6px -2px rgba(102, 126, 234, 0.2)"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)"
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)"
+                }}
+              >
+                Add Problem
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
