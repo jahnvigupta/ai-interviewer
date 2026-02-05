@@ -12,6 +12,7 @@ export default function Home() {
   const [error, setError] = useState("")
   const [loadingStage, setLoadingStage] = useState("")
   const [language, setLanguage] = useState("javascript")
+  const [selectedProblemId, setSelectedProblemId] = useState(problems[0].id)
 
   const languages = [
     { value: "javascript", label: "JavaScript" },
@@ -50,11 +51,14 @@ export default function Home() {
     }, 900)
 
     try {
+      const selectedProblem = problems.find((p) => p.id === selectedProblemId)
+      if (!selectedProblem) throw new Error("Problem not found")
+
       const res = await fetch("/api/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          problem: problems[0].description,
+          problem: selectedProblem.description,
           code,
           explanation,
         }),
@@ -103,11 +107,60 @@ export default function Home() {
             backgroundClip: "text",
           }}
         >
-          AI Interviewer
+          DSA Judge
         </h1>
         <p style={{ color: "#64748b", fontSize: "1.1rem", marginBottom: 32 }}>
-          Practice your Data Structures & Algorithms skills
+          Get instant feedback on your coding solutions
         </p>
+
+        <section style={{ marginBottom: 24 }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "1.1rem",
+              fontWeight: 600,
+              marginBottom: 12,
+              color: "#1e293b",
+            }}
+          >
+            Select Problem
+          </label>
+          <select
+            value={selectedProblemId}
+            onChange={(e) => {
+              setSelectedProblemId(e.target.value)
+              setCode("")
+              setExplanation("")
+              setResult(null)
+            }}
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "12px 16px",
+              borderRadius: 8,
+              border: "2px solid #e2e8f0",
+              background: loading ? "#f8fafc" : "#ffffff",
+              color: "#1e293b",
+              fontSize: "1rem",
+              fontWeight: 500,
+              cursor: loading ? "not-allowed" : "pointer",
+              transition: "all 0.2s",
+              outline: "none",
+            }}
+            onFocus={(e) => {
+              if (!loading) e.target.style.borderColor = "#667eea"
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#e2e8f0"
+            }}
+          >
+            {problems.map((problem) => (
+              <option key={problem.id} value={problem.id}>
+                {problem.title}
+              </option>
+            ))}
+          </select>
+        </section>
 
         <section
           style={{
@@ -142,7 +195,7 @@ export default function Home() {
               fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
             }}
           >
-            {problems[0].description}
+            {problems.find((p) => p.id === selectedProblemId)?.description}
           </pre>
         </section>
 
@@ -557,6 +610,7 @@ export default function Home() {
                 setCode("")
                 setExplanation("")
                 setLanguage("javascript")
+                setError("")
               }}
               style={{
                 width: "100%",
