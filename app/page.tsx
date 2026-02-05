@@ -14,18 +14,37 @@ export default function Home() {
   const [language, setLanguage] = useState("javascript")
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [dropdownSearch, setDropdownSearch] = useState("")
+  const [showPasteModal, setShowPasteModal] = useState(false)
+  const [pastedProblem, setPastedProblem] = useState<{ title: string; description: string } | null>(null)
 
   const [selectedProblemId, setSelectedProblemId] = useState("")
 
   // Use only default problems
   const allProblems = defaultProblems
-  
-  // Initialize selected problem
-  useEffect(() => {
-    if (allProblems.length > 0 && !selectedProblemId) {
-      setSelectedProblemId(allProblems[0].id)
+
+  // Handle paste problem
+  const handlePasteProblem = () => {
+    setShowPasteModal(true)
+    setDropdownOpen(false)
+  }
+
+  const handleConfirmPaste = (title: string, description: string) => {
+    if (!title.trim() || !description.trim()) {
+      alert("Please provide both title and description")
+      return
     }
-  }, [allProblems.length, selectedProblemId])
+    setPastedProblem({ title: title.trim(), description: description.trim() })
+    setSelectedProblemId("pasted")
+    setShowPasteModal(false)
+    setCode("")
+    setExplanation("")
+    setResult(null)
+  }
+
+  // Get the current selected problem (either from list or pasted)
+  const selectedProblem = selectedProblemId === "pasted" 
+    ? pastedProblem 
+    : allProblems.find((p) => p.id === selectedProblemId)
 
   // Filter problems based on search query (for dropdown)
   const filteredProblems = allProblems.filter((problem) => {
@@ -38,8 +57,6 @@ export default function Home() {
       problem.difficulty?.toLowerCase().includes(query)
     )
   })
-
-  const selectedProblem = allProblems.find((p) => p.id === selectedProblemId)
 
   const languages = [
     { value: "javascript", label: "JavaScript" },
@@ -78,14 +95,17 @@ export default function Home() {
     }, 900)
 
     try {
-      const selectedProblem = allProblems.find((p) => p.id === selectedProblemId)
-      if (!selectedProblem) throw new Error("Problem not found")
+      const currentProblem = selectedProblemId === "pasted" 
+        ? pastedProblem 
+        : allProblems.find((p) => p.id === selectedProblemId)
+      
+      if (!currentProblem) throw new Error("Problem not found")
 
       const res = await fetch("/api/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          problem: selectedProblem.description,
+          problem: currentProblem.description,
           code,
           explanation,
         }),
@@ -188,7 +208,7 @@ export default function Home() {
                 if (!dropdownOpen) e.currentTarget.style.borderColor = "#e2e8f0"
               }}
             >
-              {selectedProblem ? selectedProblem.title : "Select a problem..."}
+              {selectedProblem ? (selectedProblemId === "pasted" ? pastedProblem?.title : selectedProblem.title) : "Select problem"}
               <span
                 style={{
                   position: "absolute",
@@ -265,6 +285,32 @@ export default function Home() {
                       maxHeight: "320px",
                     }}
                   >
+                    <div
+                      onClick={handlePasteProblem}
+                      style={{
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid #e2e8f0",
+                        background: "#f0f9ff",
+                        color: "#667eea",
+                        fontSize: "0.95rem",
+                        fontWeight: 600,
+                        transition: "background 0.15s",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#e0f2fe"
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#f0f9ff"
+                      }}
+                    >
+                      <span>📋</span>
+                      <span>Paste Problem</span>
+                    </div>
+
                     {filteredProblems.length === 0 ? (
                       <div
                         style={{
@@ -390,26 +436,7 @@ export default function Home() {
             Problem Statement
           </h3>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {allProblems.find((p) => p.id === selectedProblemId)?.difficulty && (
-                <span
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 6,
-                    background:
-                      allProblems.find((p) => p.id === selectedProblemId)?.difficulty === "Easy"
-                        ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-                        : allProblems.find((p) => p.id === selectedProblemId)?.difficulty === "Medium"
-                        ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
-                        : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-                    color: "#ffffff",
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                  }}
-                >
-                  {allProblems.find((p) => p.id === selectedProblemId)?.difficulty}
-                </span>
-              )}
-              {allProblems.find((p) => p.id === selectedProblemId)?.topic && (
+              {selectedProblemId === "pasted" ? (
                 <span
                   style={{
                     padding: "6px 12px",
@@ -420,8 +447,44 @@ export default function Home() {
                     fontWeight: 600,
                   }}
                 >
-                  {allProblems.find((p) => p.id === selectedProblemId)?.topic}
+                  Pasted Problem
                 </span>
+              ) : (
+                <>
+                  {allProblems.find((p) => p.id === selectedProblemId)?.difficulty && (
+                    <span
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        background:
+                          allProblems.find((p) => p.id === selectedProblemId)?.difficulty === "Easy"
+                            ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                            : allProblems.find((p) => p.id === selectedProblemId)?.difficulty === "Medium"
+                            ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                            : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                        color: "#ffffff",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {allProblems.find((p) => p.id === selectedProblemId)?.difficulty}
+                    </span>
+                  )}
+                  {allProblems.find((p) => p.id === selectedProblemId)?.topic && (
+                    <span
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                        color: "#ffffff",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {allProblems.find((p) => p.id === selectedProblemId)?.topic}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -439,7 +502,9 @@ export default function Home() {
               fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
             }}
           >
-            {allProblems.find((p) => p.id === selectedProblemId)?.description}
+            {selectedProblemId === "pasted" 
+              ? pastedProblem?.description 
+              : allProblems.find((p) => p.id === selectedProblemId)?.description}
           </pre>
         </section>
 
@@ -566,34 +631,34 @@ export default function Home() {
 
         <button
           onClick={evaluate}
-          disabled={loading}
+          disabled={loading || !selectedProblem}
           style={{
             width: "100%",
             padding: "14px 24px",
             borderRadius: 8,
             border: "none",
-            background: loading
+            background: loading || !selectedProblem
               ? "#94a3b8"
               : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
             color: "#ffffff",
             fontSize: "1rem",
             fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
+            cursor: loading || !selectedProblem ? "not-allowed" : "pointer",
             transition: "all 0.2s",
-            boxShadow: loading
+            boxShadow: loading || !selectedProblem
               ? "none"
               : "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)",
-            opacity: loading ? 0.7 : 1,
+            opacity: loading || !selectedProblem ? 0.7 : 1,
           }}
           onMouseEnter={(e) => {
-            if (!loading) {
+            if (!loading && selectedProblem) {
               e.currentTarget.style.transform = "translateY(-1px)"
               e.currentTarget.style.boxShadow =
                 "0 10px 15px -3px rgba(102, 126, 234, 0.3), 0 4px 6px -2px rgba(102, 126, 234, 0.2)"
             }
           }}
           onMouseLeave={(e) => {
-            if (!loading) {
+            if (!loading && selectedProblem) {
               e.currentTarget.style.transform = "translateY(0)"
               e.currentTarget.style.boxShadow =
                 "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)"
@@ -884,6 +949,200 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Paste Problem Modal */}
+      {showPasteModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: 20,
+          }}
+          onClick={() => setShowPasteModal(false)}
+        >
+          <PasteProblemModal
+            onConfirm={handleConfirmPaste}
+            onCancel={() => setShowPasteModal(false)}
+          />
+        </div>
+      )}
     </main>
+  )
+}
+
+// Paste Problem Modal Component
+function PasteProblemModal({ onConfirm, onCancel }: { onConfirm: (title: string, description: string) => void; onCancel: () => void }) {
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+
+  const handleSubmit = () => {
+    if (!title.trim() || !description.trim()) {
+      alert("Please provide both title and description")
+      return
+    }
+    onConfirm(title, description)
+    setTitle("")
+    setDescription("")
+  }
+
+  return (
+    <div
+      style={{
+        background: "#ffffff",
+        borderRadius: 16,
+        padding: 32,
+        maxWidth: 600,
+        width: "100%",
+        maxHeight: "90vh",
+        overflowY: "auto",
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h2
+        style={{
+          fontSize: "1.5rem",
+          fontWeight: 700,
+          marginBottom: 24,
+          color: "#1e293b",
+        }}
+      >
+        Paste Problem
+      </h2>
+
+      <div style={{ marginBottom: 20 }}>
+        <label
+          style={{
+            display: "block",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            marginBottom: 8,
+            color: "#1e293b",
+          }}
+        >
+          Problem Title *
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g., Two Sum"
+          style={{
+            width: "100%",
+            padding: "12px 16px",
+            borderRadius: 8,
+            border: "2px solid #e2e8f0",
+            fontSize: "0.95rem",
+            outline: "none",
+            transition: "all 0.2s",
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = "#667eea"
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "#e2e8f0"
+          }}
+        />
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <label
+          style={{
+            display: "block",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            marginBottom: 8,
+            color: "#1e293b",
+          }}
+        >
+          Problem Description *
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Paste the problem statement, examples, constraints, etc."
+          rows={12}
+          style={{
+            width: "100%",
+            padding: "12px 16px",
+            borderRadius: 8,
+            border: "2px solid #e2e8f0",
+            fontSize: "0.95rem",
+            resize: "vertical",
+            fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
+            outline: "none",
+            transition: "all 0.2s",
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = "#667eea"
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "#e2e8f0"
+          }}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: "12px 24px",
+            borderRadius: 8,
+            border: "2px solid #e2e8f0",
+            background: "#ffffff",
+            color: "#475569",
+            fontSize: "1rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "#94a3b8"
+            e.currentTarget.style.color = "#1e293b"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "#e2e8f0"
+            e.currentTarget.style.color = "#475569"
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSubmit}
+          style={{
+            padding: "12px 24px",
+            borderRadius: 8,
+            border: "none",
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            color: "#ffffff",
+            fontSize: "1rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.2s",
+            boxShadow: "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-1px)"
+            e.currentTarget.style.boxShadow =
+              "0 10px 15px -3px rgba(102, 126, 234, 0.3), 0 4px 6px -2px rgba(102, 126, 234, 0.2)"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)"
+            e.currentTarget.style.boxShadow =
+              "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)"
+          }}
+        >
+          Use Problem
+        </button>
+      </div>
+    </div>
   )
 }
