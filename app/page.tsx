@@ -154,10 +154,16 @@ export default function Home() {
               e.target.style.borderColor = "#e2e8f0"
             }}
           >
-            {problems.map((problem) => (
-              <option key={problem.id} value={problem.id}>
-                {problem.title}
-              </option>
+            {Array.from(new Set(problems.map((p) => p.topic))).map((topic) => (
+              <optgroup key={topic} label={topic}>
+                {problems
+                  .filter((p) => p.topic === topic)
+                  .map((problem) => (
+                    <option key={problem.id} value={problem.id}>
+                      {problem.title}
+                    </option>
+                  ))}
+              </optgroup>
             ))}
           </select>
         </section>
@@ -171,16 +177,39 @@ export default function Home() {
             border: "1px solid #e2e8f0",
           }}
         >
-          <h3
+          <div
             style={{
-              fontSize: "1.25rem",
-              fontWeight: 600,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               marginBottom: 16,
-              color: "#1e293b",
             }}
           >
-            Problem Statement
-          </h3>
+            <h3
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: 600,
+                color: "#1e293b",
+                margin: 0,
+              }}
+            >
+              Problem Statement
+            </h3>
+            {problems.find((p) => p.id === selectedProblemId)?.topic && (
+              <span
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 6,
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  color: "#ffffff",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                {problems.find((p) => p.id === selectedProblemId)?.topic}
+              </span>
+            )}
+          </div>
           <pre
             style={{
               background: "#ffffff",
