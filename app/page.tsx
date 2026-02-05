@@ -12,9 +12,10 @@ export default function Home() {
   const [error, setError] = useState("")
   const [loadingStage, setLoadingStage] = useState("")
   const [language, setLanguage] = useState("javascript")
-  const [searchQuery, setSearchQuery] = useState("")
   const [customProblems, setCustomProblems] = useState<any[]>([])
   const [showAddModal, setShowAddModal] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [dropdownSearch, setDropdownSearch] = useState("")
   const [newProblem, setNewProblem] = useState({
     title: "",
     description: "",
@@ -47,10 +48,10 @@ export default function Home() {
     }
   }, [allProblems.length, selectedProblemId])
 
-  // Filter problems based on search query
+  // Filter problems based on search query (for dropdown)
   const filteredProblems = allProblems.filter((problem) => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
+    if (!dropdownSearch) return true
+    const query = dropdownSearch.toLowerCase()
     return (
       problem.title.toLowerCase().includes(query) ||
       problem.description.toLowerCase().includes(query) ||
@@ -58,6 +59,8 @@ export default function Home() {
       problem.difficulty?.toLowerCase().includes(query)
     )
   })
+
+  const selectedProblem = allProblems.find((p) => p.id === selectedProblemId)
 
   // Save custom problems to localStorage
   const saveCustomProblems = (problems: any[]) => {
@@ -244,97 +247,266 @@ export default function Home() {
             </button>
           </div>
 
-          <input
-            type="text"
-            placeholder="Search problems by title, description, topic, or difficulty..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px 16px",
-              marginBottom: 12,
-              borderRadius: 8,
-              border: "2px solid #e2e8f0",
-              background: loading ? "#f8fafc" : "#ffffff",
-              color: "#1e293b",
-              fontSize: "0.95rem",
-              transition: "all 0.2s",
-              outline: "none",
-            }}
-            onFocus={(e) => {
-              if (!loading) e.target.style.borderColor = "#667eea"
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = "#e2e8f0"
-            }}
-          />
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (!loading) {
+                  setDropdownOpen(!dropdownOpen)
+                  if (!dropdownOpen) {
+                    setDropdownSearch("")
+                  }
+                }
+              }}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                paddingRight: "40px",
+                borderRadius: 8,
+                border: "2px solid #e2e8f0",
+                background: loading ? "#f8fafc" : "#ffffff",
+                color: selectedProblem ? "#1e293b" : "#94a3b8",
+                fontSize: "1rem",
+                fontWeight: 500,
+                cursor: loading ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+                outline: "none",
+                textAlign: "left",
+                position: "relative",
+              }}
+              onFocus={(e) => {
+                if (!loading) e.currentTarget.style.borderColor = "#667eea"
+              }}
+              onBlur={(e) => {
+                if (!dropdownOpen) e.currentTarget.style.borderColor = "#e2e8f0"
+              }}
+            >
+              {selectedProblem ? selectedProblem.title : "Select a problem..."}
+              <span
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: `translateY(-50%) rotate(${dropdownOpen ? "180deg" : "0deg"})`,
+                  transition: "transform 0.2s",
+                  fontSize: "0.8rem",
+                  color: "#64748b",
+                }}
+              >
+                ▼
+              </span>
+            </button>
 
-          <select
-            value={selectedProblemId}
-            onChange={(e) => {
-              setSelectedProblemId(e.target.value)
-              setCode("")
-              setExplanation("")
-              setResult(null)
-            }}
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px 16px",
-              borderRadius: 8,
-              border: "2px solid #e2e8f0",
-              background: loading ? "#f8fafc" : "#ffffff",
-              color: "#1e293b",
-              fontSize: "1rem",
-              fontWeight: 500,
-              cursor: loading ? "not-allowed" : "pointer",
-              transition: "all 0.2s",
-              outline: "none",
-            }}
-            onFocus={(e) => {
-              if (!loading) e.target.style.borderColor = "#667eea"
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = "#e2e8f0"
-            }}
-          >
-            {filteredProblems.length === 0 ? (
-              <option value="">No problems found</option>
-            ) : (
+            {dropdownOpen && (
               <>
-                {customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id)).length > 0 && (
-                  <optgroup
-                    label={`Custom (${customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id)).length})`}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    marginTop: 4,
+                    background: "#ffffff",
+                    borderRadius: 8,
+                    border: "2px solid #e2e8f0",
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                    zIndex: 1000,
+                    maxHeight: "400px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: 12,
+                      borderBottom: "1px solid #e2e8f0",
+                      background: "#f8fafc",
+                    }}
                   >
-                    {customProblems
-                      .filter((p) => filteredProblems.some((fp) => fp.id === p.id))
-                      .map((problem) => (
-                        <option key={problem.id} value={problem.id}>
-                          {problem.title}
-                        </option>
-                      ))}
-                  </optgroup>
-                )}
-                {["Easy", "Medium", "Hard"].map((difficulty) => {
-                  const problemsByDifficulty = filteredProblems.filter(
-                    (p) => p.difficulty === difficulty && !p.id.startsWith("custom-")
-                  )
-                  if (problemsByDifficulty.length === 0) return null
+                    <input
+                      type="text"
+                      placeholder="Search problems..."
+                      value={dropdownSearch}
+                      onChange={(e) => {
+                        setDropdownSearch(e.target.value)
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        borderRadius: 6,
+                        border: "2px solid #e2e8f0",
+                        background: "#ffffff",
+                        color: "#1e293b",
+                        fontSize: "0.9rem",
+                        outline: "none",
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = "#667eea"
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = "#e2e8f0"
+                      }}
+                      autoFocus
+                    />
+                  </div>
 
-                  return (
-                    <optgroup key={difficulty} label={`${difficulty} (${problemsByDifficulty.length})`}>
-                      {problemsByDifficulty.map((problem) => (
-                        <option key={problem.id} value={problem.id}>
-                          {problem.title}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )
-                })}
+                  <div
+                    style={{
+                      overflowY: "auto",
+                      maxHeight: "320px",
+                    }}
+                  >
+                    {filteredProblems.length === 0 ? (
+                      <div
+                        style={{
+                          padding: "20px",
+                          textAlign: "center",
+                          color: "#64748b",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        No problems found
+                      </div>
+                    ) : (
+                      <>
+                        {customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id)).length > 0 && (
+                          <>
+                            <div
+                              style={{
+                                padding: "8px 16px",
+                                background: "#f1f5f9",
+                                fontSize: "0.85rem",
+                                fontWeight: 600,
+                                color: "#475569",
+                                borderBottom: "1px solid #e2e8f0",
+                              }}
+                            >
+                              Custom ({customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id)).length})
+                            </div>
+                            {customProblems
+                              .filter((p) => filteredProblems.some((fp) => fp.id === p.id))
+                              .map((problem) => (
+                                <div
+                                  key={problem.id}
+                                  onClick={() => {
+                                    setSelectedProblemId(problem.id)
+                                    setCode("")
+                                    setExplanation("")
+                                    setResult(null)
+                                    setDropdownOpen(false)
+                                    setDropdownSearch("")
+                                  }}
+                                  style={{
+                                    padding: "12px 16px",
+                                    cursor: "pointer",
+                                    borderBottom: "1px solid #f1f5f9",
+                                    background: selectedProblemId === problem.id ? "#f0f9ff" : "#ffffff",
+                                    color: "#1e293b",
+                                    fontSize: "0.95rem",
+                                    transition: "background 0.15s",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (selectedProblemId !== problem.id) {
+                                      e.currentTarget.style.background = "#f8fafc"
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (selectedProblemId !== problem.id) {
+                                      e.currentTarget.style.background = "#ffffff"
+                                    }
+                                  }}
+                                >
+                                  {problem.title}
+                                </div>
+                              ))}
+                          </>
+                        )}
+                        {["Easy", "Medium", "Hard"].map((difficulty) => {
+                          const problemsByDifficulty = filteredProblems.filter(
+                            (p) => p.difficulty === difficulty && !p.id.startsWith("custom-")
+                          )
+                          if (problemsByDifficulty.length === 0) return null
+
+                          return (
+                            <div key={difficulty}>
+                              <div
+                                style={{
+                                  padding: "8px 16px",
+                                  background: "#f1f5f9",
+                                  fontSize: "0.85rem",
+                                  fontWeight: 600,
+                                  color: "#475569",
+                                  borderBottom: "1px solid #e2e8f0",
+                                  borderTop:
+                                    customProblems.filter((p) => filteredProblems.some((fp) => fp.id === p.id))
+                                      .length > 0
+                                      ? "1px solid #e2e8f0"
+                                      : "none",
+                                }}
+                              >
+                                {difficulty} ({problemsByDifficulty.length})
+                              </div>
+                              {problemsByDifficulty.map((problem) => (
+                                <div
+                                  key={problem.id}
+                                  onClick={() => {
+                                    setSelectedProblemId(problem.id)
+                                    setCode("")
+                                    setExplanation("")
+                                    setResult(null)
+                                    setDropdownOpen(false)
+                                    setDropdownSearch("")
+                                  }}
+                                  style={{
+                                    padding: "12px 16px",
+                                    cursor: "pointer",
+                                    borderBottom: "1px solid #f1f5f9",
+                                    background: selectedProblemId === problem.id ? "#f0f9ff" : "#ffffff",
+                                    color: "#1e293b",
+                                    fontSize: "0.95rem",
+                                    transition: "background 0.15s",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (selectedProblemId !== problem.id) {
+                                      e.currentTarget.style.background = "#f8fafc"
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (selectedProblemId !== problem.id) {
+                                      e.currentTarget.style.background = "#ffffff"
+                                    }
+                                  }}
+                                >
+                                  {problem.title}
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        })}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 999,
+                  }}
+                  onClick={() => {
+                    setDropdownOpen(false)
+                    setDropdownSearch("")
+                  }}
+                />
               </>
             )}
-          </select>
+          </div>
 
           {selectedProblemId.startsWith("custom-") && (
             <button
