@@ -154,17 +154,20 @@ export default function Home() {
               e.target.style.borderColor = "#e2e8f0"
             }}
           >
-            {Array.from(new Set(problems.map((p) => p.topic))).map((topic) => (
-              <optgroup key={topic} label={topic}>
-                {problems
-                  .filter((p) => p.topic === topic)
-                  .map((problem) => (
+            {["Easy", "Medium", "Hard"].map((difficulty) => {
+              const problemsByDifficulty = problems.filter((p) => p.difficulty === difficulty)
+              if (problemsByDifficulty.length === 0) return null
+              
+              return (
+                <optgroup key={difficulty} label={`${difficulty} (${problemsByDifficulty.length})`}>
+                  {problemsByDifficulty.map((problem) => (
                     <option key={problem.id} value={problem.id}>
                       {problem.title}
                     </option>
                   ))}
-              </optgroup>
-            ))}
+                </optgroup>
+              )
+            })}
           </select>
         </section>
 
@@ -183,6 +186,8 @@ export default function Home() {
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: 16,
+              flexWrap: "wrap",
+              gap: 12,
             }}
           >
             <h3
@@ -195,20 +200,41 @@ export default function Home() {
             >
               Problem Statement
             </h3>
-            {problems.find((p) => p.id === selectedProblemId)?.topic && (
-              <span
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 6,
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  color: "#ffffff",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                }}
-              >
-                {problems.find((p) => p.id === selectedProblemId)?.topic}
-              </span>
-            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {problems.find((p) => p.id === selectedProblemId)?.difficulty && (
+                <span
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    background:
+                      problems.find((p) => p.id === selectedProblemId)?.difficulty === "Easy"
+                        ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                        : problems.find((p) => p.id === selectedProblemId)?.difficulty === "Medium"
+                        ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                        : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                    color: "#ffffff",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {problems.find((p) => p.id === selectedProblemId)?.difficulty}
+                </span>
+              )}
+              {problems.find((p) => p.id === selectedProblemId)?.topic && (
+                <span
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    color: "#ffffff",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {problems.find((p) => p.id === selectedProblemId)?.topic}
+                </span>
+              )}
+            </div>
           </div>
           <pre
             style={{
