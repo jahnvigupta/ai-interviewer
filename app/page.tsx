@@ -149,6 +149,21 @@ export default function Home() {
       >
       <div
         style={{
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          color: "#ffffff",
+          padding: "12px 24px",
+          borderRadius: 8,
+          marginBottom: 24,
+          textAlign: "center",
+          fontSize: "0.95rem",
+          fontWeight: 500,
+          boxShadow: "0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2)",
+        }}
+      >
+        We're in beta mode — check out the judge and tell us what you think.
+      </div>
+      <div
+        style={{
           background: "#ffffff",
           borderRadius: 16,
           boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
